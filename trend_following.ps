@@ -1,0 +1,46 @@
+//@version=5
+strategy("NASDAQ MNQ100 Trend Following Strategy", overlay=true)
+
+// Input parameters for moving averages
+short_ma_length = input.int(20, title="Short MA Length")
+long_ma_length = input.int(50, title="Long MA Length")
+adx_length = input.int(14, title="ADX Length")
+adx_smoothing = input.int(14, title="ADX Smoothing")
+adx_threshold = input.float(25, title="ADX Threshold")
+
+// Calculate moving averages
+short_ma = ta.sma(close, short_ma_length)
+long_ma = ta.sma(close, long_ma_length)
+
+// Calculate ADX using DI+ and DI- with specified smoothing
+[plusDI, minusDI, adx] = ta.dmi(adx_length, adx_smoothing)
+
+// Plot moving averages
+plot(short_ma, color=color.blue, title="20-day MA")
+plot(long_ma, color=color.red, title="50-day MA")
+
+// Plot ADX for visualization (optional)
+hline(adx_threshold, "ADX Threshold", color=color.gray)
+plot(adx, color=color.green, title="ADX")
+
+// Define crossover conditions
+bullish_crossover = ta.crossover(short_ma, long_ma)
+bearish_crossover = ta.crossunder(short_ma, long_ma)
+
+// Define strategy conditions based on crossover and ADX
+enter_long = bullish_crossover and adx > adx_threshold
+enter_short = bearish_crossover and adx > adx_threshold
+
+// Execute strategy orders
+if (enter_long)
+    strategy.entry("Long", strategy.long)
+
+if (enter_short)
+    strategy.entry("Short", strategy.short)
+
+// Optional: Exit strategy based on opposite crossovers
+if (bearish_crossover)
+    strategy.close("Long")
+
+if (bullish_crossover)
+    strategy.close("Short")
