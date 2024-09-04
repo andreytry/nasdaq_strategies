@@ -1,0 +1,60 @@
+//@version=5
+strategy("NASDAQ MNQ100 MACD RSI Strategy", overlay=true)
+
+// Input parameters
+emaLength = input.int(200, title="EMA Length")
+rsiLength = input.int(14, title="RSI Length")
+macdFastLength = input.int(12, title="MACD Fast Length")
+macdSlowLength = input.int(26, title="MACD Slow Length")
+macdSignalSmoothing = input.int(9, title="MACD Signal Smoothing")
+
+// Calculate EMA
+ema200 = ta.ema(close, emaLength)
+
+// Calculate RSI
+rsi = ta.rsi(close, rsiLength)
+
+// Calculate MACD and Signal line
+[macdLine, signalLine, _] = ta.macd(close, macdFastLength, macdSlowLength, macdSignalSmoothing)
+
+// Determine EMA trend
+emaTrendUp = ema200 > ta.sma(ema200, 10)
+emaTrendDown = ema200 < ta.sma(ema200, 10)
+
+// Check for RSI overbought and oversold conditions in the last 15 candles
+rsiOverbought = ta.highest(rsi, 15) > 70
+rsiOversold = ta.lowest(rsi, 15) < 30
+
+// Define conditions for short (sell) position
+sellCondition = emaTrendDown and ta.crossover(signalLine, macdLine) and macdLine > 0 and signalLine > 0 and rsiOverbought
+
+// Define conditions for closing short (buy) position after sell
+buyConditionAfterSell = ta.crossunder(signalLine, macdLine) and macdLine < 0 and signalLine < 0
+
+// Define conditions for long (buy) position
+buyCondition = emaTrendUp and ta.crossover(macdLine, signalLine) and macdLine < 0 and signalLine < 0 and rsiOversold
+
+// Define conditions for closing long (sell) position after buy
+sellConditionAfterBuy = ta.crossunder(macdLine, signalLine) and macdLine > 0 and signalLine > 0
+
+// Execute the strategy
+if (sellCondition)
+    strategy.entry("Sell", strategy.short)
+
+if (buyConditionAfterSell)
+    strategy.close("Sell")
+
+if (buyCondition)
+    strategy.entry("Buy", strategy.long)
+
+if (sellConditionAfterBuy)
+    strategy.close("Buy")
+
+// Plotting the indicators
+plot(ema200, color=color.blue, title="EMA 200")
+hline(70, "Overbought (70)", color=color.red, linestyle=hline.style_dotted)
+hline(30, "Oversold (30)", color=color.green, linestyle=hline.style_dotted)
+
+// Plot MACD and Signal Line
+plot(macdLine, color=color.blue, title="MACD Line")
+plot(signalLine, color=color.orange, title="Signal Line")

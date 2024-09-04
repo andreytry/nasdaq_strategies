@@ -1,0 +1,12 @@
+As a trading view expert and trader implement this strategy with pine script: Trend Following Strategy
+Overview: This strategy involves identifying and following the prevailing trend in the market, whether bullish (uptrend) or bearish (downtrend). Traders use technical indicators like moving averages (MA), Average Directional Index (ADX), and trendlines to identify these trends.
+How to Implement:
+Use Moving Averages (like the 20-day and 50-day) to identify trends. When the shorter MA crosses above the longer MA, it could signal a buying opportunity (bullish crossover). Conversely, when the shorter MA crosses below the longer MA, it signals a selling opportunity (bearish crossover).
+The ADX indicator can help determine the strength of a trend. A reading above 25 typically indicates a strong trend.
+Why It Works: The Nasdaq 100 index often experiences significant and sustained trends due to the market's volatility, making this strategy effective for capturing extended price movements
+
+
+Performance
+8.35%
+With 1 contract
+
