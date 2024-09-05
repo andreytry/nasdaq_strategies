@@ -24,7 +24,7 @@ hline(adx_threshold, "ADX Threshold", color=color.gray)
 plot(adx, color=color.green, title="ADX")
 
 // Define crossover conditions
-bullish_crossover = ta.crossover(short_ma, long_ma) 
+bullish_crossover = ta.crossover(short_ma, long_ma)
 bearish_crossover = ta.crossunder(short_ma, long_ma)
 
 // Define strategy conditions based on crossover and ADX
@@ -44,3 +44,10 @@ if (bearish_crossover)
 
 if (bullish_crossover)
     strategy.close("Short")
+
+// Alerts for EMA crossovers
+if (bullish_crossover)
+    alert("MNQ100 EMA Crossover - Bullish Crossover: 20 EMA crossed above 50 EMA", alert.freq_once_per_bar)
+
+if (bearish_crossover)
+    alert("MNQ100 EMA Crossover - Bearish Crossunder: 20 EMA crossed below 50 EMA", alert.freq_once_per_bar)
