@@ -1,0 +1,62 @@
+//@version=5
+strategy("NASDAQ MNQ100 Bollinger Band Strategy", overlay=true)
+
+// Bollinger Bands Settings
+length = input(20, title="Bollinger Bands Length")
+src = close
+mult = input(2.0, title="Bollinger Bands Multiplier")
+basis = ta.sma(src, length)
+dev = mult * ta.stdev(src, length)
+upper = basis + dev
+lower = basis - dev
+
+// ADX Calculation (Manual)
+adxLength = input(14, title="ADX Length")
+adxThreshold = input(15, title="ADX Trend Threshold") // Below this, we consider the market non-trendy
+
+// Calculate Directional Movement
+upMove = ta.change(high)
+downMove = -ta.change(low)
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0
+
+// True Range and ATR calculation
+tr = ta.tr(true)
+atr = ta.sma(tr, adxLength)
+
+// Plus and Minus DI
+plusDI = 100 * ta.sma(plusDM, adxLength) / atr
+minusDI = 100 * ta.sma(minusDM, adxLength) / atr
+
+// DX and ADX Calculation
+dx = 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.sma(dx, adxLength)
+
+// ATR Filter for volatility
+atrLength = input(14, title="ATR Length")
+atrThreshold = input(1.0, title="ATR Volatility Threshold") // Custom threshold to define moderate volatility
+atrVolatility = ta.atr(atrLength)
+
+// Strategy logic
+isNonTrendy = adx < adxThreshold
+isModerateVolatility = atrVolatility > atrThreshold
+
+// Entry conditions
+longCondition = (close < lower) and isNonTrendy and isModerateVolatility
+shortCondition = (close > upper) and isNonTrendy and isModerateVolatility
+
+// Execute trades
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+
+if (shortCondition)
+    strategy.entry("Short", strategy.short)
+
+// Plot Bollinger Bands
+plot(upper, color=color.green, linewidth=1, title="Upper Bollinger Band")
+plot(basis, color=color.blue, linewidth=1, title="Middle Bollinger Band")
+plot(lower, color=color.red, linewidth=1, title="Lower Bollinger Band")
+
+// Plot ADX and Volatility information
+plot(adx, title="ADX", color=color.orange, linewidth=1)
+hline(adxThreshold, title="ADX Threshold", color=color.red, linestyle=hline.style_dotted)
