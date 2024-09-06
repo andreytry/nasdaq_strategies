@@ -1,5 +1,5 @@
 //@version=5
-strategy("NASDAQ MNQ100 Bollinger Band Strategy", overlay=true)
+strategy("Simple Bollinger Band Strategy with Date Restriction", overlay=true)
 
 // Bollinger Bands Settings
 length = input(20, title="Bollinger Bands Length")
@@ -10,53 +10,30 @@ dev = mult * ta.stdev(src, length)
 upper = basis + dev
 lower = basis - dev
 
-// ADX Calculation (Manual)
-adxLength = input(14, title="ADX Length")
-adxThreshold = input(15, title="ADX Trend Threshold") // Below this, we consider the market non-trendy
-
-// Calculate Directional Movement
-upMove = ta.change(high)
-downMove = -ta.change(low)
-plusDM = (upMove > downMove and upMove > 0) ? upMove : 0
-minusDM = (downMove > upMove and downMove > 0) ? downMove : 0
-
-// True Range and ATR calculation
-tr = ta.tr(true)
-atr = ta.sma(tr, adxLength)
-
-// Plus and Minus DI
-plusDI = 100 * ta.sma(plusDM, adxLength) / atr
-minusDI = 100 * ta.sma(minusDM, adxLength) / atr
-
-// DX and ADX Calculation
-dx = 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
-adx = ta.sma(dx, adxLength)
-
-// ATR Filter for volatility
-atrLength = input(14, title="ATR Length")
-atrThreshold = input(1.0, title="ATR Volatility Threshold") // Custom threshold to define moderate volatility
-atrVolatility = ta.atr(atrLength)
-
-// Strategy logic
-isNonTrendy = adx < adxThreshold
-isModerateVolatility = atrVolatility > atrThreshold
+// Date restriction
+startDate = timestamp("2024-08-31 00:00")  // Start date: 01-Aug-2024
+endDate = timestamp("2024-09-30 23:59")    // End date: 30-Sep-2024
+inDateRange = (time >= startDate) and (time <= endDate)
 
 // Entry conditions
-longCondition = (close < lower) and isNonTrendy and isModerateVolatility
-shortCondition = (close > upper) and isNonTrendy and isModerateVolatility
+bandProximityPercent = input(0.1, title="Proximity to Bands (%)") / 100  // 5% proximity
+upperThreshold = upper * (1 - bandProximityPercent)  // Threshold for selling (close to upper band)
+lowerThreshold = lower * (1 + bandProximityPercent)  // Threshold for buying (close to lower band)
+
+// Buy when price is near the lower Bollinger Band
+longCondition = (close <= lowerThreshold) and inDateRange
+
+// Sell when price is near the upper Bollinger Band
+shortCondition = (close >= upperThreshold) and inDateRange
 
 // Execute trades
 if (longCondition)
-    strategy.entry("Long", strategy.long)
+    strategy.entry("Buy", strategy.long)
 
 if (shortCondition)
-    strategy.entry("Short", strategy.short)
+    strategy.entry("Sell", strategy.short)
 
 // Plot Bollinger Bands
 plot(upper, color=color.green, linewidth=1, title="Upper Bollinger Band")
 plot(basis, color=color.blue, linewidth=1, title="Middle Bollinger Band")
 plot(lower, color=color.red, linewidth=1, title="Lower Bollinger Band")
-
-// Plot ADX and Volatility information
-plot(adx, title="ADX", color=color.orange, linewidth=1)
-hline(adxThreshold, title="ADX Threshold", color=color.red, linestyle=hline.style_dotted)

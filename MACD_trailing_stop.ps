@@ -44,3 +44,8 @@ if (shortCondition)
 plot(macdLine, color=color.blue, title="MACD Line")
 plot(signalLine, color=color.orange, title="Signal Line")
 hline(0, "Zero Line", color=color.gray)
+
+// Alerts for Buy (Long) and Sell (Short) conditions
+alertcondition(longCondition, title="MACD Crossover Buy", message="NASDAQ MNQ100. Event: MACD crossover. Recommended action: Buy")
+alertcondition(shortCondition, title="MACD Crossunder Sell", message="NASDAQ MNQ100. Event: MACD crossunder. Recommended action: Sell")
+
