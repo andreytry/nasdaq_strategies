@@ -16,12 +16,12 @@ long_ma = ta.sma(close, long_ma_length)
 [plusDI, minusDI, adx] = ta.dmi(adx_length, adx_smoothing)
 
 // Custom colors for EMA plots
-cyanColor = color.new(#00FFFF, 0)    // Cyan (20-period EMA)
-roseColor = color.new(#FF007F, 0)    // Rose (50-period EMA)
+roseColor = color.new(#FF007F, 0)    // Rose (20-period EMA)
+cyanColor = color.new(#00FFFF, 0)    // Cyan (50-period EMA)
 
-// Plot moving averages with custom colors
-plot(short_ma, color=cyanColor, title="20-day EMA (Cyan)")
-plot(long_ma, color=roseColor, title="50-day EMA (Rose)")
+// Plot moving averages with correct custom colors
+plot(short_ma, color=roseColor, title="20-day EMA (Rose)")   // 20-period EMA in Rose
+plot(long_ma, color=cyanColor, title="50-day EMA (Cyan)")    // 50-period EMA in Cyan
 
 // Plot ADX for visualization (optional)
 hline(adx_threshold, "ADX Threshold", color=color.gray)
