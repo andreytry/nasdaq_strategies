@@ -1,7 +1,7 @@
 //@version=5
 // for 1-minute chart
 //24% with 3 contracts
-strategy("NASDAQ MACD + RSI Strategy with Trailing Stop", overlay=true)
+strategy("NASDAQ MACD + RSI Strategy with Trailing Stop and EMAs", overlay=true)
 
 // Input settings
 macdSource = input(close, "MACD Source")
@@ -20,15 +20,24 @@ trailPoints = input.float(100, "Trailing Stop Offset (Points)", minval=1)
 // Calculate RSI
 rsi = ta.rsi(close, rsiLength)
 
+// Calculate EMAs
+ema20 = ta.ema(close, 20)
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+
 // Define conditions
 macdCrossOver = ta.crossover(macdLine, signalLine)
 macdCrossUnder = ta.crossunder(macdLine, signalLine)
 wasRSIOverbought = ta.highest(rsi, lookbackPeriod) > rsiOverbought
 wasRSIOversold = ta.lowest(rsi, lookbackPeriod) < rsiOversold
 
+// Define EMA crossover conditions
+emaCrossOver = ta.crossover(ema20, ema50)
+emaCrossUnder = ta.crossunder(ema20, ema50)
+
 // Entry conditions
-longCondition = macdCrossOver 
-shortCondition = macdCrossUnder 
+longCondition = macdCrossOver
+shortCondition = macdCrossUnder
 
 // Trailing Stop Calculation for Long
 if (longCondition)
@@ -45,7 +54,20 @@ plot(macdLine, color=color.blue, title="MACD Line")
 plot(signalLine, color=color.orange, title="Signal Line")
 hline(0, "Zero Line", color=color.gray)
 
+// Custom colors for EMA plots
+cyanColor = color.new(#00FFFF, 0)    // Cyan
+pinkColor = color.new(#FF69B4, 0)    // Pink (hot pink)
+yellowColor = color.new(#FFFF00, 0)  // Yellow
+
+// Plot EMA lines with custom colors
+plot(ema20, color=cyanColor, title="EMA20")
+plot(ema50, color=pinkColor, title="EMA50")
+plot(ema200, color=yellowColor, title="EMA200")
+
 // Alerts for Buy (Long) and Sell (Short) conditions
 alertcondition(longCondition, title="MACD Crossover Buy", message="NASDAQ MNQ100. Event: MACD crossover. Recommended action: Buy")
 alertcondition(shortCondition, title="MACD Crossunder Sell", message="NASDAQ MNQ100. Event: MACD crossunder. Recommended action: Sell")
 
+// Alerts for EMA20 cross over and under EMA50
+alertcondition(emaCrossOver, title="EMA20 Cross Over EMA50", message="NASDAQ MNQ100. Event: EMA20 crossed over EMA50. Recommended action: Buy")
+alertcondition(emaCrossUnder, title="EMA20 Cross Under EMA50", message="NASDAQ MNQ100. Event: EMA20 crossed under EMA50. Recommended action: Sell")
