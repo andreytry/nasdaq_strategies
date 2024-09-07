@@ -1,12 +1,12 @@
 //@version=5
-strategy("NASDAQ MNQ100 Trend Following Strategy", overlay=true)
+strategy("NASDAQ MNQ100 Trend Following Strategy", overlay=true) 
 
 // Input parameters for moving averages
 short_ma_length = input.int(20, title="Short MA Length")
-long_ma_length = input.int(50, title="Long MA Length")
+long_ma_length = input.int(50, title="Long MA Length") 
 adx_length = input.int(14, title="ADX Length")
 adx_smoothing = input.int(14, title="ADX Smoothing")
-adx_threshold = input.float(25, title="ADX Threshold")
+adx_threshold = input.float(20, title="ADX Threshold")
 
 // Calculate moving averages
 short_ma = ta.sma(close, short_ma_length)
@@ -15,9 +15,13 @@ long_ma = ta.sma(close, long_ma_length)
 // Calculate ADX using DI+ and DI- with specified smoothing
 [plusDI, minusDI, adx] = ta.dmi(adx_length, adx_smoothing)
 
-// Plot moving averages
-plot(short_ma, color=color.blue, title="20-day MA")
-plot(long_ma, color=color.red, title="50-day MA")
+// Custom colors for EMA plots
+cyanColor = color.new(#00FFFF, 0)    // Cyan (20-period EMA)
+roseColor = color.new(#FF007F, 0)    // Rose (50-period EMA)
+
+// Plot moving averages with custom colors
+plot(short_ma, color=cyanColor, title="20-day EMA (Cyan)")
+plot(long_ma, color=roseColor, title="50-day EMA (Rose)")
 
 // Plot ADX for visualization (optional)
 hline(adx_threshold, "ADX Threshold", color=color.gray)
