@@ -60,8 +60,8 @@ pinkColor = color.new(#FF69B4, 0)    // Pink (hot pink)
 yellowColor = color.new(#FFFF00, 0)  // Yellow
 
 // Plot EMA lines with custom colors
-plot(ema20, color=cyanColor, title="EMA20")
-plot(ema50, color=pinkColor, title="EMA50")
+plot(ema20, color=pinkColor, title="EMA20")    // EMA20 in pink
+plot(ema50, color=cyanColor, title="EMA50")    // EMA50 in cyan
 plot(ema200, color=yellowColor, title="EMA200")
 
 // Alerts for Buy (Long) and Sell (Short) conditions
