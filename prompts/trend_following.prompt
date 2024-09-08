@@ -10,3 +10,23 @@ Performance
 8.35%
 With 1 contract
 
+
+Entry:
+
+There is a big move DOWN
+
+Exit:
+RSI near overbought / oversold, 
+MACD crossover/crossunder
+
+
+
+
+
+Improvements:
+1. Dont enter if RSI abovr 60 / brloe 40
+2. Exit if RSI is above 80 or below 20
+3. Exit if RSI crossed 70 or 30 3 timestamp
+4. You can enter again on pullback to EMA50
+5. Exit if it stops doing lower lows
+
