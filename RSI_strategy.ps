@@ -1,0 +1,94 @@
+//@version=5
+strategy("NASDAQ MNQ100 Advanced Trend Following Strategy", overlay=true)
+
+// Input settings
+ema20_length = 20
+ema50_length = 50
+ema200_length = 200
+rsi_length = input.int(14, title="RSI Length")
+macd_fast_length = input.int(12, title="MACD Fast Length")
+macd_slow_length = input.int(26, title="MACD Slow Length")
+macd_signal_length = input.int(9, title="MACD Signal Length")
+bb_length = input.int(20, title="Bollinger Bands Length")
+bb_mult = input.float(2, title="Bollinger Bands Multiplier")
+trailing_stop = input.float(20, title="Trailing Stop (Points)")
+rsi_oversold_level = input.int(30, title="RSI Oversold Level")
+rsi_overbought_level = input.int(70, title="RSI Overbought Level")
+macd_cross_within = input.int(5, title="MACD Cross Within X Candles After RSI Overbought/Oversold")
+
+// Calculate indicators
+ema20 = ta.ema(close, ema20_length)
+ema50 = ta.ema(close, ema50_length)
+ema200 = ta.ema(close, ema200_length)
+rsi = ta.rsi(close, rsi_length)
+[macd_line, signal_line, _] = ta.macd(close, macd_fast_length, macd_slow_length, macd_signal_length)
+[bb_upper, bb_lower, _] = ta.bb(close, bb_length, bb_mult)
+
+// Check RSI overbought/oversold
+rsi_oversold = rsi < rsi_oversold_level
+rsi_overbought = rsi > rsi_overbought_level
+
+// Check MACD crossover conditions
+macd_crossover = ta.crossover(macd_line, signal_line)
+macd_crossunder = ta.crossunder(macd_line, signal_line)
+
+// Track when RSI is oversold/overbought
+rsi_oversold_trigger = ta.barssince(rsi_oversold) <= macd_cross_within
+rsi_overbought_trigger = ta.barssince(rsi_overbought) <= macd_cross_within
+
+// Long position entry condition: RSI is oversold followed by MACD crossover within X candles 
+long_condition = rsi_oversold_trigger and macd_crossover
+
+// Short position entry condition: RSI is overbought followed by MACD crossunder within X candles
+short_condition = rsi_overbought_trigger and macd_crossunder
+
+// Define trailing stop
+trail_stop_distance = trailing_stop
+
+// Enter long position
+if (long_condition)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
+
+// Enter short position
+if (short_condition)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
+
+// Trade management for long positions
+ema_crossover_uptrend = ta.crossover(ema20, ema50)
+long_uptrend_condition = strategy.position_size > 0 and ema_crossover_uptrend
+
+// Trade management for short positions
+ema_crossunder_downtrend = ta.crossunder(ema20, ema50)
+short_downtrend_condition = strategy.position_size < 0 and ema_crossunder_downtrend
+
+// Long exit conditions
+if (strategy.position_size > 0)
+    if (not long_uptrend_condition and rsi > rsi_overbought_level)
+        strategy.close("Long", comment="RSI Overbought Exit")
+    else if (long_uptrend_condition and close < ema50)
+        strategy.close("Long", comment="EMA50 Exit")
+    else if (long_uptrend_condition and (strategy.position_avg_price - close) > 20)
+        strategy.close("Long", comment="Price Down 20 Points")
+
+// Short exit conditions
+if (strategy.position_size < 0)
+    if (not short_downtrend_condition and rsi < rsi_oversold_level)
+        strategy.close("Short", comment="RSI Oversold Exit")
+    else if (short_downtrend_condition and close > ema50)
+        strategy.close("Short", comment="EMA50 Exit")
+    else if (short_downtrend_condition and (close - strategy.position_avg_price) > 20)
+        strategy.close("Short", comment="Price Up 20 Points")
+
+// Plot indicators
+plot(ema20, title="EMA20", color=color.new(color.red, 0), linewidth=2)
+plot(ema50, title="EMA50", color=color.new(color.blue, 0), linewidth=2)
+plot(ema200, title="EMA200", color=color.new(color.yellow, 0), linewidth=1)
+
+plot(bb_upper, "BB Upper", color=color.blue, linewidth=1)
+plot(bb_lower, "BB Lower", color=color.blue, linewidth=1)
+plot(macd_line, "MACD Line", color=color.green, linewidth=1)
+plot(signal_line, "MACD Signal", color=color.red, linewidth=1)
+hline(rsi_oversold_level, "RSI Oversold", color=color.red, linestyle=hline.style_dotted)
+hline(rsi_overbought_level, "RSI Overbought", color=color.green, linestyle=hline.style_dotted)
