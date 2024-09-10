@@ -1,5 +1,5 @@
 //@version=5
-strategy("NASDAQ MNQ100 Advanced Trend Following Strategy", overlay=true)
+strategy("NASDAQ MNQ100 MACD + RSI Strategy", overlay=true)
 
 // Input settings
 ema20_length = 20
@@ -13,6 +13,7 @@ bb_length = input.int(20, title="Bollinger Bands Length")
 bb_mult = input.float(2, title="Bollinger Bands Multiplier")
 trailing_stop = input.float(400, title="Trailing Stop (Points)")
 macd_cross_within = input.int(10, title="MACD Cross Within X Candles After Condition")
+trend_strength_threshold = input.float(1.0, title="Trend Strength Threshold (for EMA20)", minval=0.1)
 
 // Calculate indicators
 ema20 = ta.ema(close, ema20_length)
@@ -30,27 +31,25 @@ macd_crossunder = ta.crossunder(macd_line, signal_line)
 rsi_oversold_within_5 = ta.lowest(rsi, macd_cross_within) < 30
 rsi_overbought_within_5 = ta.highest(rsi, macd_cross_within) > 70
 
-// Check if EMA20 is in an uptrend (current EMA20 > previous EMA20)
-ema200_uptrend = ema200 > ta.valuewhen(ema200, ema200, 50)
+// Calculate EMA20 slope to measure trend strength
+ema20_slope = ema20 - ta.valuewhen(ema20, ema20, 10)   // Change in EMA20 over 10 bars
+strong_uptrend = ema20_slope > trend_strength_threshold    // Strong uptrend if slope > threshold
+strong_downtrend = ema20_slope < -trend_strength_threshold // Strong downtrend if slope < negative threshold
 
-// Check if EMA20 is in a downtrend (current EMA20 < previous EMA20)
-ema200_downtrend = ema200 < ta.valuewhen(ema200, ema200, 50)
-
-// Long position entry condition: RSI is oversold within the last 5 candles, MACD crossover, and EMA20 is in an uptrend
-long_condition = rsi_oversold_within_5 and macd_crossover and ema200_uptrend
-
-// Short position entry condition: RSI is overbought within the last 5 candles, MACD crossunder, and EMA20 is in a downtrend
-short_condition = rsi_overbought_within_5 and macd_crossunder and ema200_downtrend
+// Long position entry condition: RSI is oversold within the last 5 candles, MACD crossover, and no strong downtrend (EMA20)
+long_condition = rsi_oversold_within_5 and macd_crossover 
+// Short position entry condition: RSI is overbought within the last 5 candles, MACD crossunder, and no strong uptrend (EMA20)
+short_condition = rsi_overbought_within_5 and macd_crossunder 
 
 // Define trailing stop
 trail_stop_distance = trailing_stop
 
-// Enter long position with trailing stop (only if EMA20 is in an uptrend)
+// Enter long position with trailing stop (only if there’s no strong downtrend in EMA20)
 if (long_condition)
     strategy.entry("Long", strategy.long)
     strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
 
-// Enter short position with trailing stop (only if EMA20 is in a downtrend)
+// Enter short position with trailing stop (only if there’s no strong uptrend in EMA20)
 if (short_condition)
     strategy.entry("Short", strategy.short)
     strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
