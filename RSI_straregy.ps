@@ -56,14 +56,14 @@ if (shortCondition)
     strategy.entry("Sell", strategy.short)
     alert("MACD Crossunder with RSI Overbought - Short Entry", alert.freq_once_per_bar)
 
-// Generate alert and shortened label "RSI" when RSI is oversold, but check for recent label
+// Generate alert and shortened label "RSI" when RSI is oversold, 50 points below the price, but check for recent label
 if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 10)))
-    label.new(bar_index, low, text="RSI", color=color.blue, textcolor=color.white, size=size.normal)
+    label.new(bar_index, low - 50, text="RSI", color=color.blue, textcolor=color.white, size=size.normal)  // Positioned 50 points below
     alert("RSI Oversold - RSI low", alert.freq_once_per_bar)
     lastRSILowLabel := bar_index
 
-// Generate alert and shortened label "RSI" when RSI is overbought, but check for recent label
+// Generate alert and shortened label "RSI" when RSI is overbought, 50 points above the price, but check for recent label
 if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > 10)))
-    label.new(bar_index, high, text="RSI", color=color.orange, textcolor=color.white, size=size.normal)
+    label.new(bar_index, high + 50, text="RSI", color=color.orange, textcolor=color.white, size=size.normal)  // Positioned 50 points above
     alert("RSI Overbought - RSI high", alert.freq_once_per_bar)
     lastRSIHighLabel := bar_index
