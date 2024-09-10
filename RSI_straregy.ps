@@ -1,119 +1,56 @@
 //@version=5
-strategy("NASDAQ MNQ100 MACD + RSI Strategy", overlay=true)
+indicator("MACD and RSI Alerts and Labels", overlay=true)
 
-// Input settings
-ema20_length = 20
-ema50_length = 50
-ema200_length = 200
-rsi_length = input.int(14, title="RSI Length")
-macd_fast_length = input.int(12, title="MACD Fast Length")
-macd_slow_length = input.int(26, title="MACD Slow Length")
-macd_signal_length = input.int(9, title="MACD Signal Length")
-bb_length = input.int(20, title="Bollinger Bands Length")
-bb_mult = input.float(2, title="Bollinger Bands Multiplier")
-trailing_stop = input.float(400, title="Trailing Stop (Points)")
-macd_cross_within = input.int(10, title="MACD Cross Within X Candles After Condition")
-trend_strength_threshold = input.float(1.0, title="Trend Strength Threshold (for EMA20)", minval=0.1)
+// MACD calculations
+[macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
 
-// Calculate indicators
-ema20 = ta.ema(close, ema20_length)
-ema50 = ta.ema(close, ema50_length)
-ema200 = ta.ema(close, ema200_length)
-rsi = ta.rsi(close, rsi_length)
-[macd_line, signal_line, _] = ta.macd(close, macd_fast_length, macd_slow_length, macd_signal_length)
-[bb_upper, bb_lower, _] = ta.bb(close, bb_length, bb_mult)
+// RSI calculation
+rsi = ta.rsi(close, 14)
 
-// Check MACD crossover conditions
-macd_crossover = ta.crossover(macd_line, signal_line)
-macd_crossunder = ta.crossunder(macd_line, signal_line)
+// Track RSI oversold and overbought conditions
+rsiOversold = rsi < 30
+rsiOverbought = rsi > 70
 
-// Track RSI oversold/overbought conditions within the last 5 candles
-rsi_oversold_within_5 = ta.lowest(rsi, macd_cross_within) < 30
-rsi_overbought_within_5 = ta.highest(rsi, macd_cross_within) > 70
+// Track RSI oversold and overbought within the last 10 candles
+rsiOversoldRecent = ta.lowest(rsi, 10) < 30
+rsiOverboughtRecent = ta.highest(rsi, 10) > 70
 
-// Calculate EMA20 slope to measure trend strength
-ema20_slope = ema20 - ta.valuewhen(ema20, ema20, 10)   // Change in EMA20 over 10 bars
-strong_uptrend = ema20_slope > trend_strength_threshold    // Strong uptrend if slope > threshold
-strong_downtrend = ema20_slope < -trend_strength_threshold // Strong downtrend if slope < negative threshold
+// Check if RSI "low" or "high" labels have already been placed in the last 10 candles
+var int lastRSILowLabel = na
+var int lastRSIHighLabel = na
 
-// Long position entry condition: RSI is oversold within the last 5 candles, MACD crossover, and no strong downtrend (EMA20)
-long_condition = rsi_oversold_within_5 and macd_crossover 
-// Short position entry condition: RSI is overbought within the last 5 candles, MACD crossunder, and no strong uptrend (EMA20)
-short_condition = rsi_overbought_within_5 and macd_crossunder 
+// MACD crossover conditions
+macdCrossOver = ta.crossover(macdLine, signalLine)
+macdCrossUnder = ta.crossunder(macdLine, signalLine)
 
-// Define trailing stop
-trail_stop_distance = trailing_stop
+// Generate alert for MACD Crossover (bullish)
+if (macdCrossOver)
+    alert("MACD Crossover - Bullish Signal", alert.freq_once_per_bar)
 
-// Enter long position with trailing stop (only if there’s no strong downtrend in EMA20)
-if (long_condition)
-    strategy.entry("Long", strategy.long)
-    strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
+// Generate alert for MACD Crossunder (bearish)
+if (macdCrossUnder)
+    alert("MACD Crossunder - Bearish Signal", alert.freq_once_per_bar)
 
-// Enter short position with trailing stop (only if there’s no strong uptrend in EMA20)
-if (short_condition)
-    strategy.entry("Short", strategy.short)
-    strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance)
+// Long condition: MACD crossover and RSI was oversold within last 10 candles
+longCondition = macdCrossOver and rsiOversoldRecent
+if (longCondition)
+    label.new(bar_index, high, text="Long", color=color.green, textcolor=color.white, size=size.normal)
+    alert("MACD Crossover with RSI Oversold - Long Signal", alert.freq_once_per_bar)
 
-// Track EMA crossover and crossunder
-ema_crossover_uptrend = ta.crossover(ema20, ema50)
-ema_crossunder_downtrend = ta.crossunder(ema20, ema50)
+// Short condition: MACD crossunder and RSI was overbought within last 10 candles
+shortCondition = macdCrossUnder and rsiOverboughtRecent
+if (shortCondition)
+    label.new(bar_index, low, text="Short", color=color.red, textcolor=color.white, size=size.normal)
+    alert("MACD Crossunder with RSI Overbought - Short Signal", alert.freq_once_per_bar)
 
-// Persistent variables to store the bar indices of the latest EMA20/EMA50 crossover and crossunder
-var float ema_crossover_bar_index = na
-var float ema_crossunder_bar_index = na
+// Generate alert and label when RSI is oversold (RSI low), but check for recent label
+if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 10)))
+    label.new(bar_index, low, text="RSI low", color=color.blue, textcolor=color.white, size=size.normal)
+    alert("RSI Oversold - RSI low", alert.freq_once_per_bar)
+    lastRSILowLabel := bar_index
 
-// Update the crossover bar index only when a new crossover occurs
-if (ema_crossover_uptrend)
-    ema_crossover_bar_index := bar_index
-
-// Update the crossunder bar index only when a new crossunder occurs
-if (ema_crossunder_downtrend)
-    ema_crossunder_bar_index := bar_index
-
-// Get the bar index of the most recent entry
-entry_bar_index = strategy.opentrades.entry_bar_index(0)
-
-// Check if the EMA20/EMA50 crossover happened after the entry for long positions
-long_uptrend_condition = strategy.position_size > 0 and not na(ema_crossover_bar_index) and (ema_crossover_bar_index > entry_bar_index)
-
-// Check if the EMA20/EMA50 crossunder happened after the entry for short positions
-short_downtrend_condition = strategy.position_size < 0 and not na(ema_crossunder_bar_index) and (ema_crossunder_bar_index > entry_bar_index)
-
-// Long exit conditions
-if (strategy.position_size > 0)
-    // Exit on RSI Overbought when there's no uptrend, else use price crossing EMA50
-    if (not long_uptrend_condition and rsi > 70)
-        strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="RSI Overbought Exit")
-    else if (long_uptrend_condition and close < ema50)
-        strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="EMA50 Exit")
-    else if (long_uptrend_condition and (strategy.position_avg_price - close) > 20)
-        strategy.exit("Long Exit", "Long", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="Price Down 20 Points")
-
-// Short exit conditions
-if (strategy.position_size < 0)
-    // Exit on RSI Oversold when there's no downtrend, else use price crossing EMA50
-    if (not short_downtrend_condition and rsi < 30)
-        strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="RSI Oversold Exit")
-    else if (short_downtrend_condition and close > ema50)
-        strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="EMA50 Exit")
-    else if (short_downtrend_condition and (close - strategy.position_avg_price) > 20)
-        strategy.exit("Short Exit", "Short", trail_points=trail_stop_distance, trail_offset=trail_stop_distance, comment="Price Up 20 Points")
-
-// Plot indicators
-
-// Custom colors for EMA plots
-pinkColor = color.new(#FF69B4, 0)    // Hot Pink (custom color for 20-period EMA)
-cyanColor = color.new(#00FFFF, 0)    // Cyan (custom color for 50-period EMA)
-
-// Plot moving averages with custom colors
-plot(ema20, title="EMA20 (Pink)", color=pinkColor, linewidth=2)   // 20-period EMA in Pink
-plot(ema50, title="EMA50 (Cyan)", color=cyanColor, linewidth=2)   // 50-period EMA in Cyan
-plot(ema200, title="EMA200 (Yellow)", color=color.new(color.yellow, 0), linewidth=1)
-
-// Plot other indicators
-plot(bb_upper, "BB Upper", color=color.blue, linewidth=1)
-plot(bb_lower, "BB Lower", color=color.blue, linewidth=1)
-plot(macd_line, "MACD Line", color=color.green, linewidth=1)
-plot(signal_line, "MACD Signal", color=color.red, linewidth=1)
-hline(30, "RSI Oversold", color=color.red, linestyle=hline.style_dotted)
-hline(70, "RSI Overbought", color=color.green, linestyle=hline.style_dotted)
+// Generate alert and label when RSI is overbought (RSI high), but check for recent label
+if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > 10)))
+    label.new(bar_index, high, text="RSI high", color=color.orange, textcolor=color.white, size=size.normal)
+    alert("RSI Overbought - RSI high", alert.freq_once_per_bar)
+    lastRSIHighLabel := bar_index
