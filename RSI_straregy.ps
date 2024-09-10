@@ -1,11 +1,26 @@
 //@version=5
-strategy("MACD and RSI Strategy", overlay=true)
+strategy("MACD and RSI Strategy with Custom EMAs", overlay=true)
 
 // MACD calculations
 [macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
 
 // RSI calculation
 rsi = ta.rsi(close, 14)
+
+// EMA calculations with custom RGB colors
+ema40 = ta.ema(close, 40)
+ema20 = ta.ema(close, 20)
+ema200 = ta.ema(close, 200)
+
+// Define custom colors with RGB values
+colorCyan = color.new(#00FFFF, 0)  // Cyan color for EMA40
+colorPink = color.new(#FFC0CB, 0)  // Pink color for EMA20
+colorYellow = color.new(#FFFF00, 0) // Yellow color for EMA200
+
+// Plot the EMAs with custom colors
+plot(ema40, color=colorCyan, linewidth=2, title="EMA 40")
+plot(ema20, color=colorPink, linewidth=2, title="EMA 20")
+plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
 
 // Track RSI oversold and overbought conditions
 rsiOversold = rsi < 30
@@ -23,15 +38,11 @@ var int lastRSIHighLabel = na
 macdCrossOver = ta.crossover(macdLine, signalLine)
 macdCrossUnder = ta.crossunder(macdLine, signalLine)
 
-// Generate alert and add shortened label "M" for MACD Crossover (bullish)
-if (macdCrossOver)
-    label.new(bar_index, high, text="M", color=color.green, textcolor=color.white, size=size.normal)
-    alert("MACD Crossover - Bullish Signal", alert.freq_once_per_bar)
+// Plot green lower triangle for MACD Crossover (bullish)
+plotshape(series=macdCrossOver, location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, title="MACD Crossover")
 
-// Generate alert and add shortened label "M" for MACD Crossunder (bearish)
-if (macdCrossUnder)
-    label.new(bar_index, low, text="M", color=color.red, textcolor=color.white, size=size.normal)
-    alert("MACD Crossunder - Bearish Signal", alert.freq_once_per_bar)
+// Plot red upper triangle for MACD Crossunder (bearish)
+plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Crossunder")
 
 // Buy condition: MACD crossover and RSI was oversold within last 10 candles
 longCondition = macdCrossOver and rsiOversoldRecent
