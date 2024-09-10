@@ -44,17 +44,21 @@ plotshape(series=macdCrossOver, location=location.belowbar, color=color.green, s
 // Plot red upper triangle for MACD Crossunder (bearish)
 plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Crossunder")
 
-// Buy condition: MACD crossover and RSI was oversold within last 10 candles
-longCondition = macdCrossOver and rsiOversoldRecent
+// Detect changes in MACD slope
+macdSlopeChangePositive = (macdLine[1] < macdLine[2]) and (macdLine > macdLine[1])  // MACD slope turns positive
+macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1])  // MACD slope turns negative
+
+// Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles
+longCondition = macdSlopeChangePositive and rsiOversoldRecent
 if (longCondition)
     strategy.entry("Buy", strategy.long)
-    alert("MACD Crossover with RSI Oversold - Long Entry", alert.freq_once_per_bar)
+    alert("MACD Slope Change with RSI Oversold - Long Entry", alert.freq_once_per_bar)
 
-// Sell condition: MACD crossunder and RSI was overbought within last 10 candles
-shortCondition = macdCrossUnder and rsiOverboughtRecent
+// Sell condition: MACD slope turns negative and RSI was overbought within the last 10 candles
+shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent
 if (shortCondition)
     strategy.entry("Sell", strategy.short)
-    alert("MACD Crossunder with RSI Overbought - Short Entry", alert.freq_once_per_bar)
+    alert("MACD Slope Change with RSI Overbought - Short Entry", alert.freq_once_per_bar)
 
 // Generate alert and shortened label "RSI" when RSI is oversold, 50 points below the price, but check for recent label
 if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 10)))
