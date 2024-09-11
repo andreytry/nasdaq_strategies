@@ -1,5 +1,5 @@
 //@version=5
-strategy("MACD and RSI Strategy with Custom EMAs and Trailing Stop-Loss", overlay=true)
+strategy("MACD and RSI Strategy with Custom EMAs, Trailing Stop-Loss, Price Move Alerts, and MACD Notifications", overlay=true)
 
 // MACD calculations
 [macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
@@ -26,9 +26,12 @@ plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
 var float initialOffset = 160.0  // Initial offset for stop-loss (160 points)
 var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 
+// Define the threshold for price change alerts
+var float priceChangeThreshold = 10.0  // Threshold for triggering price change alerts
+
 // Track RSI oversold and overbought conditions
-rsiOversold = rsi < 35
-rsiOverbought = rsi > 65
+rsiOversold = rsi < 30
+rsiOverbought = rsi > 70
 
 // Track RSI oversold and overbought within the last 10 candles
 rsiOversoldRecent = ta.lowest(rsi, 10) < 35
@@ -52,32 +55,48 @@ plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, st
 macdSlopeChangePositive = (macdLine[1] < macdLine[2]) and (macdLine > macdLine[1])  // MACD slope turns positive
 macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1])  // MACD slope turns negative
 
+// Detect EMA200 trend
+ema200TrendingUp = ema200 > ema200[1]  // EMA200 trending up
+ema200TrendingDown = ema200 < ema200[1]  // EMA200 trending down
+
 // Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles (no open short position)
 longCondition = macdSlopeChangePositive and rsiOversoldRecent and strategy.position_size <= 0
 if (longCondition)
     strategy.entry("Buy", strategy.long)
-    alert("MACD Slope Change with RSI Oversold - Long Entry", alert.freq_once_per_bar)
-    label.new(bar_index, high + 50, text="B", color=color.green, textcolor=color.white, size=size.normal)
+    label.new(bar_index, low - 20, text="B", color=color.green, textcolor=color.white, size=size.normal)  // Positioned 20 points below the low
 
 // Sell condition: MACD slope turns negative and RSI was overbought within the last 10 candles (no open long position)
 shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent and strategy.position_size >= 0
 if (shortCondition)
     strategy.entry("Sell", strategy.short)
-    alert("MACD Slope Change with RSI Overbought - Short Entry", alert.freq_once_per_bar)
-    label.new(bar_index, low - 50, text="S", color=color.red, textcolor=color.white, size=size.normal)
+    label.new(bar_index, high + 20, text="S", color=color.red, textcolor=color.white, size=size.normal)  // Positioned 20 points above the high
 
 // Implement Trailing Stop-Loss for Long and Short Positions
 strategy.exit("Exit Buy", "Buy", trail_offset=trailingOffset, trail_points=initialOffset)
 strategy.exit("Exit Sell", "Sell", trail_offset=trailingOffset, trail_points=initialOffset)
 
-// Generate alert and shortened label "RSI" when RSI is oversold, 50 points below the price, but check for recent label
+// Remove RSI alerts and print only labels for oversold/overbought conditions (no RSI alerts)
 if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 10)))
     label.new(bar_index, low - 50, text="RSI", color=color.blue, textcolor=color.white, size=size.normal)  // Positioned 50 points below
-    alert("RSI Oversold - RSI low", alert.freq_once_per_bar)
     lastRSILowLabel := bar_index
 
-// Generate alert and shortened label "RSI" when RSI is overbought, 50 points above the price, but check for recent label
 if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > 10)))
     label.new(bar_index, high + 50, text="RSI", color=color.orange, textcolor=color.white, size=size.normal)  // Positioned 50 points above
-    alert("RSI Overbought - RSI high", alert.freq_once_per_bar)
     lastRSIHighLabel := bar_index
+
+// Calculate price change over 30 bars (assuming 1-second chart for 30 seconds)
+bars_ago = 30
+price_change = close - close[bars_ago]
+
+// Trigger alert if price moves up or down by more than the threshold (10 points)
+if (math.abs(price_change) > priceChangeThreshold)
+    label.new(bar_index, na, text="!!!", color=color.yellow, textcolor=color.black, size=size.normal)  // Label with 3 exclamation marks
+    alert("Price moved by more than " + str.tostring(priceChangeThreshold) + " points in 30 seconds", alert.freq_once_per_bar)
+
+// Notify on MACD up when EMA200 is trending up
+if (macdSlopeChangePositive and ema200TrendingUp)
+    alert("MACD UP with EMA200 trending up", alert.freq_once_per_bar)
+
+// Notify on MACD down when EMA200 is trending down
+if (macdSlopeChangeNegative and ema200TrendingDown)
+    alert("MACD DOWN with EMA200 trending down", alert.freq_once_per_bar)
