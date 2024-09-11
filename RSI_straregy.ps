@@ -1,5 +1,5 @@
 //@version=5
-strategy("MACD and RSI Strategy with Custom EMAs", overlay=true)
+strategy("MACD and RSI Strategy with Custom EMAs and Trailing Stop-Loss", overlay=true)
 
 // MACD calculations
 [macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
@@ -22,13 +22,17 @@ plot(ema40, color=colorCyan, linewidth=2, title="EMA 40")
 plot(ema20, color=colorPink, linewidth=2, title="EMA 20")
 plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
 
+// Trailing Stop-Loss Constants
+var float initialOffset = 160.0  // Initial offset for stop-loss (160 points)
+var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
+
 // Track RSI oversold and overbought conditions
-rsiOversold = rsi < 30
-rsiOverbought = rsi > 70
+rsiOversold = rsi < 35
+rsiOverbought = rsi > 65
 
 // Track RSI oversold and overbought within the last 10 candles
-rsiOversoldRecent = ta.lowest(rsi, 10) < 30
-rsiOverboughtRecent = ta.highest(rsi, 10) > 70
+rsiOversoldRecent = ta.lowest(rsi, 10) < 35
+rsiOverboughtRecent = ta.highest(rsi, 10) > 65
 
 // Check if RSI "low" or "high" labels have already been placed in the last 10 candles
 var int lastRSILowLabel = na
@@ -48,17 +52,23 @@ plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, st
 macdSlopeChangePositive = (macdLine[1] < macdLine[2]) and (macdLine > macdLine[1])  // MACD slope turns positive
 macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1])  // MACD slope turns negative
 
-// Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles
-longCondition = macdSlopeChangePositive and rsiOversoldRecent
+// Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles (no open short position)
+longCondition = macdSlopeChangePositive and rsiOversoldRecent and strategy.position_size <= 0
 if (longCondition)
     strategy.entry("Buy", strategy.long)
     alert("MACD Slope Change with RSI Oversold - Long Entry", alert.freq_once_per_bar)
+    label.new(bar_index, high + 50, text="B", color=color.green, textcolor=color.white, size=size.normal)
 
-// Sell condition: MACD slope turns negative and RSI was overbought within the last 10 candles
-shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent
+// Sell condition: MACD slope turns negative and RSI was overbought within the last 10 candles (no open long position)
+shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent and strategy.position_size >= 0
 if (shortCondition)
     strategy.entry("Sell", strategy.short)
     alert("MACD Slope Change with RSI Overbought - Short Entry", alert.freq_once_per_bar)
+    label.new(bar_index, low - 50, text="S", color=color.red, textcolor=color.white, size=size.normal)
+
+// Implement Trailing Stop-Loss for Long and Short Positions
+strategy.exit("Exit Buy", "Buy", trail_offset=trailingOffset, trail_points=initialOffset)
+strategy.exit("Exit Sell", "Sell", trail_offset=trailingOffset, trail_points=initialOffset)
 
 // Generate alert and shortened label "RSI" when RSI is oversold, 50 points below the price, but check for recent label
 if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 10)))
