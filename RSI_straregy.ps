@@ -34,8 +34,8 @@ rsiOversold = rsi < 30
 rsiOverbought = rsi > 70
 
 // Track RSI oversold and overbought within the last 10 candles
-rsiOversoldRecent = ta.lowest(rsi, 10) < 35
-rsiOverboughtRecent = ta.highest(rsi, 10) > 65
+rsiOversoldRecent = ta.lowest(rsi, 5) < 35
+rsiOverboughtRecent = ta.highest(rsi, 5) > 65
 
 // Check if RSI "low" or "high" labels have already been placed in the last 5 candles
 var int lastRSILowLabel = na
