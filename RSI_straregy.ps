@@ -1,5 +1,5 @@
 //@version=5
-strategy("MACD and RSI Strategy with Trailing Stop-Loss and Price Change Alert", overlay=true)
+strategy("MACD and RSI Strategy with Trailing Stop-Loss and EMA20 Slope Angle Display", overlay=true)
 
 // MACD calculations
 [macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
@@ -30,12 +30,13 @@ var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 var float priceChangeThreshold = 40.0  // Threshold for triggering price change alerts
 
 // Track RSI oversold and overbought conditions
+rsi = ta.rsi(close, 14)
 rsiOversold = rsi < 30
 rsiOverbought = rsi > 70
 
 // Track RSI oversold and overbought within the last 10 candles
-rsiOversoldRecent = ta.lowest(rsi, 5) < 35
-rsiOverboughtRecent = ta.highest(rsi, 5) > 65
+rsiOversoldRecent = ta.lowest(rsi, 10) < 35
+rsiOverboughtRecent = ta.highest(rsi, 10) > 65
 
 // Check if RSI "low" or "high" labels have already been placed in the last 5 candles
 var int lastRSILowLabel = na
@@ -49,6 +50,10 @@ macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1
 macdCrossOver = ta.crossover(macdLine, signalLine)
 macdCrossUnder = ta.crossunder(macdLine, signalLine)
 
+// Calculate EMA20 slope angle in degrees
+slope = ema20 - ema20[1]
+angle = math.atan(slope) * (180 / math.pi)
+
 // Plot green lower triangle for positive MACD slope change (bullish)
 plotshape(series=macdSlopeChangePositive, location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, title="MACD Slope Positive")
 
@@ -60,6 +65,13 @@ plotshape(series=macdCrossOver, location=location.belowbar, color=color.green, s
 
 // Plot red upper triangle for MACD crossunder (bearish)
 plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Crossunder")
+
+// Add label near each MACD change triangle showing EMA20 slope angle
+if (macdSlopeChangePositive or macdCrossOver)
+    label.new(bar_index, low - 15, text="Angle: " + str.tostring(angle, "#.00") + "°", color=color.green, textcolor=color.white, size=size.small)  // For MACD up signals
+
+if (macdSlopeChangeNegative or macdCrossUnder)
+    label.new(bar_index, high + 15, text="Angle: " + str.tostring(angle, "#.00") + "°", color=color.red, textcolor=color.white, size=size.small)  // For MACD down signals
 
 // Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles
 longCondition = macdSlopeChangePositive and rsiOversoldRecent
