@@ -80,14 +80,16 @@ if (shortCondition)
 strategy.exit("Exit Buy", "Buy", trail_offset=trailingOffset, trail_points=initialOffset)
 strategy.exit("Exit Sell", "Sell", trail_offset=trailingOffset, trail_points=initialOffset)
 
-// RSI label positions
+// RSI label positions with alerts for oversold/overbought
 if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 5))) 
     label.new(bar_index, low - 25, text="RSI", color=colorOrange, textcolor=color.white, size=size.normal, style=label.style_label_up)  // Positioned 25 points below the price with style_label_up
     lastRSILowLabel := bar_index
+    alert("RSI OVERSOLD", alert.freq_once_per_bar)
 
 if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > 5))) 
     label.new(bar_index, high + 25, text="RSI", color=colorOrange, textcolor=color.white, size=size.normal, style=label.style_label_down)  // Positioned 25 points above the price with style_label_down
     lastRSIHighLabel := bar_index
+    alert("RSI OVERBOUGHT", alert.freq_once_per_bar)
 
 // Calculate price change between open price and current close
 price_change = close - open
@@ -96,20 +98,4 @@ price_change = close - open
 if (math.abs(price_change) > priceChangeThreshold) 
     labelYPosition = (price_change < 0) ? (high + 20) : (low - 20)  // 20 points above the high for downtrend, 20 points below the low for uptrend
     label.new(bar_index, labelYPosition, text="P" + str.tostring(price_change), color=color.yellow, textcolor=color.black, style=label.style_label_down, size=size.normal)
-    alert("PRICE MOVED BY " + str.tostring(price_change) + " POINTS BETWEEN OPEN AND CURRENT PRICE", alert.freq_once_per_bar)  // Price change notification in UPPER CASE
-
-// Notify on positive MACD slope change
-if (macdSlopeChangePositive)
-    alert("MACD SLOPE CHANGED UP", alert.freq_once_per_bar)
-
-// Notify on negative MACD slope change
-if (macdSlopeChangeNegative)
-    alert("MACD SLOPE CHANGED DOWN", alert.freq_once_per_bar)
-
-// Notify on MACD crossover
-if (macdCrossOver)
-    alert("MACD CROSSOVER", alert.freq_once_per_bar)
-
-// Notify on MACD crossunder
-if (macdCrossUnder)
-    alert("MACD CROSSUNDER", alert.freq_once_per_bar)
+    alert("PRICE MOVED BY " + str.tostring(price_change) + " POINTS BETWEEN OPEN AND CURRENT PRICE", alert.freq_once_per_bar)
