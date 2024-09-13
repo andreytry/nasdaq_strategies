@@ -27,18 +27,21 @@ plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
 var float initialOffset = 160.0  // Initial offset for stop-loss (160 points)
 var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 
-// Define the threshold for price change alerts
+// Define the threshold for price change alerts (Set to 20)
 var float priceChangeThreshold = 20.0  // Threshold for triggering price change alerts
+
+// Define a constant for the number of candles to look back for RSI oversold and overbought
+RSIPeriod = 5
 
 // Track RSI oversold and overbought conditions
 rsiOversold = rsi < 30
 rsiOverbought = rsi > 70
 
-// Track RSI oversold and overbought within the last 5 candles
-rsiOversoldRecent = ta.lowest(rsi, 5) < 30
-rsiOverboughtRecent = ta.highest(rsi, 5) > 70
+// Track RSI oversold and overbought within the last RSIPeriod candles
+rsiOversoldRecent = ta.lowest(rsi, RSIPeriod) < 30
+rsiOverboughtRecent = ta.highest(rsi, RSIPeriod) > 70
 
-// Check if RSI "low" or "high" labels have already been placed in the last 5 candles
+// Check if RSI "low" or "high" labels have already been placed in the last RSIPeriod candles
 var int lastRSILowLabel = na
 var int lastRSIHighLabel = na
 
@@ -62,18 +65,18 @@ plotshape(series=macdCrossOver, location=location.belowbar, color=color.green, s
 // Plot red upper triangle for MACD crossunder (bearish)
 plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Crossunder")
 
-// Buy condition: MACD slope turns positive and RSI was oversold within the last 10 candles
+// Buy condition: MACD slope turns positive and RSI was oversold within the last RSIPeriod candles
 longCondition = macdSlopeChangePositive and rsiOversoldRecent
 if (longCondition)
     strategy.entry("Buy", strategy.long)
-    label.new(bar_index, low - 20, text="B", color=color.green, textcolor=color.white, size=size.normal, style=label.style_label_down)  // Positioned 20 points below the low with label down style for Buy
+    label.new(bar_index, low - 20, text="B", color=color.green, textcolor=color.white, size=size.normal, style=label.style_label_up)  // Changed to style_label_up for Buy
     alert("BUY ENTRY TRIGGERED", alert.freq_once_per_bar)  // Buy notification in UPPER CASE
 
-// Sell condition: MACD slope turns negative and RSI was overbought within the last 10 candles
+// Sell condition: MACD slope turns negative and RSI was overbought within the last RSIPeriod candles
 shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent
 if (shortCondition)
     strategy.entry("Sell", strategy.short)
-    label.new(bar_index, high + 20, text="S", color=color.red, textcolor=color.white, size=size.normal)  // Positioned 20 points above the high for Sell
+    label.new(bar_index, high + 20, text="S", color=color.red, textcolor=color.white, size=size.normal, style=label.style_label_down)  // Changed to style_label_down for Sell
     alert("SELL ENTRY TRIGGERED", alert.freq_once_per_bar)  // Sell notification in UPPER CASE
 
 // Implement Trailing Stop-Loss for Long and Short Positions
@@ -81,12 +84,12 @@ strategy.exit("Exit Buy", "Buy", trail_offset=trailingOffset, trail_points=initi
 strategy.exit("Exit Sell", "Sell", trail_offset=trailingOffset, trail_points=initialOffset)
 
 // RSI label positions with alerts for oversold/overbought
-if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > 5))) 
+if (rsiOversold and (na(lastRSILowLabel) or (bar_index - lastRSILowLabel > RSIPeriod))) 
     label.new(bar_index, low - 25, text="RSI", color=colorOrange, textcolor=color.white, size=size.normal, style=label.style_label_up)  // Positioned 25 points below the price with style_label_up
     lastRSILowLabel := bar_index
     alert("RSI OVERSOLD", alert.freq_once_per_bar)
 
-if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > 5))) 
+if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > RSIPeriod))) 
     label.new(bar_index, high + 25, text="RSI", color=colorOrange, textcolor=color.white, size=size.normal, style=label.style_label_down)  // Positioned 25 points above the price with style_label_down
     lastRSIHighLabel := bar_index
     alert("RSI OVERBOUGHT", alert.freq_once_per_bar)
