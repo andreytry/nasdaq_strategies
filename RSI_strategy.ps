@@ -31,15 +31,15 @@ var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 var float priceChangeThreshold = 20.0  // Threshold for triggering price change alerts
 
 // Define a constant for the number of candles to look back for RSI oversold and overbought
-RSIPeriod = 5
+RSIPeriod = 10
 
 // Track RSI oversold and overbought conditions
 rsiOversold = rsi < 30
 rsiOverbought = rsi > 70
 
 // Track RSI oversold and overbought within the last RSIPeriod candles
-rsiOversoldRecent = ta.lowest(rsi, RSIPeriod) < 30
-rsiOverboughtRecent = ta.highest(rsi, RSIPeriod) > 70
+rsiOversoldRecent = ta.lowest(rsi, RSIPeriod) < 35
+rsiOverboughtRecent = ta.highest(rsi, RSIPeriod) > 65
 
 // Check if RSI "low" or "high" labels have already been placed in the last RSIPeriod candles
 var int lastRSILowLabel = na
