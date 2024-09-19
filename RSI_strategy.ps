@@ -16,19 +16,19 @@ ema200 = ta.ema(close, 200)
 colorCyan = color.new(#00FFFF, 0)  // Cyan color for EMA50
 colorPink = color.new(#FFC0CB, 0)  // Pink color for EMA20
 colorYellow = color.new(#FFFF00, 0) // Yellow color for EMA200
-colorOrange = color.new(#FFA500, 0) // Orange color for RSI labels
+colorOrange = color.new(#FFA500, 0) // Orange color for RSI labels 
 
 // Plot the EMAs with custom colors
 plot(ema50, color=colorCyan, linewidth=2, title="EMA 50")
 plot(ema20, color=colorPink, linewidth=2, title="EMA 20")
-plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
+plot(ema200, color=colorYellow, linewidth=2, title="EMA 200") 
 
 // Trailing Stop-Loss Constants
 var float initialOffset = 160.0  // Initial offset for stop-loss (160 points)
 var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 
 // Define the threshold for price change alerts (Set to 20)
-var float priceChangeThreshold = 20.0  // Threshold for triggering price change alerts
+var float priceChangeThreshold = 200.0  // Threshold for triggering price change alerts
 
 // Define a constant for the number of candles to look back for RSI oversold and overbought
 RSIPeriod = 10
