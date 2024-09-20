@@ -13,10 +13,10 @@ ema20 = ta.ema(close, 20)
 ema200 = ta.ema(close, 200)
 
 // Define custom colors with RGB values
-colorCyan   = color.new(#00FFFF, 0)    // Cyan color for EMA50
-colorPink   = color.new(#FFC0CB, 0)    // Pink color for EMA20
-colorYellow = color.new(#FFFF00, 0)    // Yellow color for EMA200
-colorOrange = color.new(#FFA500, 0)    // Orange color for RSI labels
+colorCyan = color.new(#00FFFF, 0)  // Cyan color for EMA50
+colorPink = color.new(#FFC0CB, 0)  // Pink color for EMA20
+colorYellow = color.new(#FFFF00, 0) // Yellow color for EMA200
+colorOrange = color.new(#FFA500, 0) // Orange color for RSI labels
 
 // Plot the EMAs with custom colors
 plot(ema50, color=colorCyan, linewidth=2, title="EMA 50")
@@ -24,49 +24,63 @@ plot(ema20, color=colorPink, linewidth=2, title="EMA 20")
 plot(ema200, color=colorYellow, linewidth=2, title="EMA 200")
 
 // Trailing Stop-Loss Constants
-var float initialOffset   = 160.0   // Initial offset for stop-loss (160 points)
-var float trailingOffset  = 320.0   // Trailing offset for stop-loss (320 points)
+var float initialOffset = 160.0  // Initial offset for stop-loss (160 points)
+var float trailingOffset = 320.0  // Trailing offset for stop-loss (320 points)
 
-// Define the threshold for price change alerts (Set to 100)
+// Define the threshold for price change alerts (Set to 20)
 var float priceChangeThreshold = 100.0  // Threshold for triggering price change alerts
 
 // Define a constant for the number of candles to look back for RSI oversold and overbought
 RSIPeriod = 10
 
 // Track RSI oversold and overbought conditions
-rsiOversold   = rsi < 30
+rsiOversold = rsi < 30
 rsiOverbought = rsi > 70
 
 // Track RSI oversold and overbought within the last RSIPeriod candles
-rsiOversoldRecent   = ta.lowest(rsi, RSIPeriod) < 35
+rsiOversoldRecent = ta.lowest(rsi, RSIPeriod) < 35
 rsiOverboughtRecent = ta.highest(rsi, RSIPeriod) > 65
 
 // Check if RSI "low" or "high" labels have already been placed in the last RSIPeriod candles
-var int lastRSILowLabel  = na
+var int lastRSILowLabel = na
 var int lastRSIHighLabel = na
 
 // Detect changes in MACD slope
-macdSlopeChangePositive = (macdLine[1] < macdLine[2]) and (macdLine > macdLine[1])   // MACD slope turns positive
-macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1])   // MACD slope turns negative
+macdSlopeChangePositive = (macdLine[1] < macdLine[2]) and (macdLine > macdLine[1])  // MACD slope turns positive
+macdSlopeChangeNegative = (macdLine[1] > macdLine[2]) and (macdLine < macdLine[1])  // MACD slope turns negative
+
+// Detect MACD crossovers
+macdCrossOver = ta.crossover(macdLine, signalLine)
+macdCrossUnder = ta.crossunder(macdLine, signalLine)
+
+// Plot green lower triangle for positive MACD slope change (bullish)
+plotshape(series=macdSlopeChangePositive, location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, title="MACD Slope Positive")
+
+// Plot red upper triangle for negative MACD slope change (bearish)
+plotshape(series=macdSlopeChangeNegative, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Slope Negative")
+
+// Plot green lower triangle for MACD crossover (bullish)
+plotshape(series=macdCrossOver, location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, title="MACD Crossover")
+
+// Plot red upper triangle for MACD crossunder (bearish)
+plotshape(series=macdCrossUnder, location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, title="MACD Crossunder")
 
 // Buy condition: MACD slope turns positive and RSI was oversold within the last RSIPeriod candles
 longCondition = macdSlopeChangePositive and rsiOversoldRecent
 if (longCondition)
     strategy.entry("Buy", strategy.long)
-    alert("BUY ENTRY TRIGGERED", alert.freq_once_per_bar)
-    // Plot green up triangle for buy signal, 10 points below the chart, size small
-    label.new(bar_index, low - 50, text="", style=label.style_triangleup, color=color.green, size=size.tiny)
+    label.new(bar_index, low - 100, text="B", color=color.green, textcolor=color.white, size=size.normal, style=label.style_label_up)  // Changed to style_label_up for Buy
+    alert("BUY ENTRY TRIGGERED", alert.freq_once_per_bar)  // Buy notification in UPPER CASE
 
 // Sell condition: MACD slope turns negative and RSI was overbought within the last RSIPeriod candles
 shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent
 if (shortCondition)
     strategy.entry("Sell", strategy.short)
-    alert("SELL ENTRY TRIGGERED", alert.freq_once_per_bar)
-    // Plot red down triangle for sell signal, 10 points above the chart, size small
-    label.new(bar_index, high + 50, text="", style=label.style_triangledown, color=color.red, size=size.tiny)
+    label.new(bar_index, high + 100, text="S", color=color.red, textcolor=color.white, size=size.normal, style=label.style_label_down)  // Changed to style_label_down for Sell
+    alert("SELL ENTRY TRIGGERED", alert.freq_once_per_bar)  // Sell notification in UPPER CASE
 
 // Implement Trailing Stop-Loss for Long and Short Positions
-strategy.exit("Exit Buy",  "Buy",  trail_offset=trailingOffset, trail_points=initialOffset)
+strategy.exit("Exit Buy", "Buy", trail_offset=trailingOffset, trail_points=initialOffset)
 strategy.exit("Exit Sell", "Sell", trail_offset=trailingOffset, trail_points=initialOffset)
 
 // RSI label positions with alerts for oversold/overbought
@@ -83,8 +97,8 @@ if (rsiOverbought and (na(lastRSIHighLabel) or (bar_index - lastRSIHighLabel > R
 // Calculate price change between open price and current close
 price_change = close - open
 
-// Display price change label strictly 20 points above or below the chart, just print the number
+// Display price change label strictly 20 points above the candle for downtrend or 20 points below for uptrend
 if (math.abs(price_change) > priceChangeThreshold) 
-    labelYPosition = (price_change < 0) ? (high + 150) : (low - 150)  // 20 points above the high for negative change, 20 points below the low for positive change
-    label.new(bar_index, labelYPosition, text=str.tostring(price_change), color=colorYellow, textcolor=color.black, style=label.style_label_center, size=size.normal)
+    labelYPosition = (price_change < 0) ? (high + 200) : (low - 200)  // 20 points above the high for downtrend, 20 points below the low for uptrend
+    label.new(bar_index, labelYPosition, text="P" + str.tostring(price_change), color=color.yellow, textcolor=color.black, style=label.style_label_down, size=size.normal)
     alert("PRICE MOVED BY " + str.tostring(price_change) + " POINTS BETWEEN OPEN AND CURRENT PRICE", alert.freq_once_per_bar)
