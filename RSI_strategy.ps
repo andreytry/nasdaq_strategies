@@ -55,7 +55,7 @@ if (longCondition)
     strategy.entry("Buy", strategy.long)
     alert("BUY ENTRY TRIGGERED", alert.freq_once_per_bar)
     // Plot green up triangle for buy signal, 10 points below the chart, size small
-    label.new(bar_index, low - 50, text="", style=label.style_triangleup, color=color.green, size=size.small)
+    label.new(bar_index, low - 50, text="", style=label.style_triangleup, color=color.green, size=size.tiny)
 
 // Sell condition: MACD slope turns negative and RSI was overbought within the last RSIPeriod candles
 shortCondition = macdSlopeChangeNegative and rsiOverboughtRecent
@@ -63,7 +63,7 @@ if (shortCondition)
     strategy.entry("Sell", strategy.short)
     alert("SELL ENTRY TRIGGERED", alert.freq_once_per_bar)
     // Plot red down triangle for sell signal, 10 points above the chart, size small
-    label.new(bar_index, high + 50, text="", style=label.style_triangledown, color=color.red, size=size.small)
+    label.new(bar_index, high + 50, text="", style=label.style_triangledown, color=color.red, size=size.tiny)
 
 // Implement Trailing Stop-Loss for Long and Short Positions
 strategy.exit("Exit Buy",  "Buy",  trail_offset=trailingOffset, trail_points=initialOffset)
@@ -85,6 +85,6 @@ price_change = close - open
 
 // Display price change label strictly 20 points above or below the chart, just print the number
 if (math.abs(price_change) > priceChangeThreshold) 
-    labelYPosition = (price_change < 0) ? (high + 100) : (low - 100)  // 20 points above the high for negative change, 20 points below the low for positive change
+    labelYPosition = (price_change < 0) ? (high + 150) : (low - 150)  // 20 points above the high for negative change, 20 points below the low for positive change
     label.new(bar_index, labelYPosition, text=str.tostring(price_change), color=colorYellow, textcolor=color.black, style=label.style_label_center, size=size.normal)
     alert("PRICE MOVED BY " + str.tostring(price_change) + " POINTS BETWEEN OPEN AND CURRENT PRICE", alert.freq_once_per_bar)
